@@ -1,0 +1,27 @@
+# Dependencies
+streamflix/node_modules/
+watch32/node_modules/
+
+# Wrangler
+.wrangler/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Logs
+*.log
