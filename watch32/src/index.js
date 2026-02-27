@@ -13,7 +13,6 @@
 
 const WATCH32_BASE = "https://watch32.sx";
 const VIDEOSTR_BASE = "https://videostr.net";
-const TMDB_API_KEY = "297f1b91919bae59d50ed815f8d2e14c";
 const TMDB_API_BASE = "https://api.themoviedb.org/3";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
 
@@ -36,27 +35,53 @@ const AJAX_HEADERS = {
   Accept: "*/*",
 };
 
+// ─── Security Helpers ─────────────────────────────────────────────────────────
+
+function getCorsHeaders(request, env) {
+  const allowedOrigins = (env.ALLOWED_ORIGINS || "").split(",").map(o => o.trim()).filter(Boolean);
+  const requestOrigin = request.headers.get("Origin") || "";
+  const matchedOrigin = allowedOrigins.find(o => o === requestOrigin);
+  const origin = matchedOrigin || (allowedOrigins[0] || "*");
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+    "Vary": "Origin",
+  };
+}
+
+function checkAuth(request, env) {
+  if (!env.API_KEY) return null; // auth not configured, allow all
+  if (request.method === "OPTIONS") return null; // skip for preflight
+  const key = request.headers.get("X-Api-Key");
+  if (key !== env.API_KEY) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return null;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status = 200, corsHeaders = {}) {
   return new Response(JSON.stringify(data, null, 2), {
     status,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      ...corsHeaders,
     },
   });
 }
 
-function errorResponse(message, status = 400) {
-  return jsonResponse({ error: message }, status);
+function errorResponse(message, status = 400, corsHeaders = {}) {
+  return jsonResponse({ error: message }, status, corsHeaders);
 }
 
 // ─── TMDB Helpers ─────────────────────────────────────────────────────────────
 
-async function tmdbGetMovie(tmdbId) {
+async function tmdbGetMovie(tmdbId, TMDB_API_KEY) {
   const resp = await fetch(
     `${TMDB_API_BASE}/movie/${tmdbId}?api_key=${TMDB_API_KEY}&language=en-US`,
     { headers: HEADERS }
@@ -65,7 +90,7 @@ async function tmdbGetMovie(tmdbId) {
   return resp.json();
 }
 
-async function tmdbGetTv(tmdbId) {
+async function tmdbGetTv(tmdbId, TMDB_API_KEY) {
   const resp = await fetch(
     `${TMDB_API_BASE}/tv/${tmdbId}?api_key=${TMDB_API_KEY}&language=en-US`,
     { headers: HEADERS }
@@ -490,7 +515,7 @@ function pickBestResult(results, title, preferType = "movie") {
 
 // ─── Route Handlers ───────────────────────────────────────────────────────────
 
-async function handleRoot(request) {
+async function handleRoot(request, corsHeaders) {
   const host = new URL(request.url).origin;
   return jsonResponse({
     service: "Watch32 Video Links API",
@@ -501,12 +526,12 @@ async function handleRoot(request) {
       movie: `${host}/movie/155`,
       tv: `${host}/tv/1396/1/1`,
     },
-  });
+  }, 200, corsHeaders);
 }
 
-async function handleMovie(tmdbId) {
+async function handleMovie(tmdbId, corsHeaders, TMDB_API_KEY) {
   // Step 1: Get movie title from TMDB
-  const tmdbData = await tmdbGetMovie(tmdbId);
+  const tmdbData = await tmdbGetMovie(tmdbId, TMDB_API_KEY);
   const title = tmdbData.title || "";
   const year = (tmdbData.release_date || "").substring(0, 4);
   const overview = tmdbData.overview || "";
@@ -515,7 +540,7 @@ async function handleMovie(tmdbId) {
     : null;
 
   if (!title) {
-    return errorResponse(`No movie found on TMDB with ID: ${tmdbId}`, 404);
+    return errorResponse(`No movie found on TMDB with ID: ${tmdbId}`, 404, corsHeaders);
   }
 
   // Step 2: Search Watch32
@@ -523,25 +548,26 @@ async function handleMovie(tmdbId) {
   if (!searchResults.length) {
     return errorResponse(
       `No results on Watch32 for "${title}"`,
-      404
+      404,
+      corsHeaders
     );
   }
 
   const chosen = pickBestResult(searchResults, title, "movie");
   if (!chosen) {
-    return errorResponse("Could not match a result on Watch32", 404);
+    return errorResponse("Could not match a result on Watch32", 404, corsHeaders);
   }
 
   // Step 3: Load detail page
   const detail = await w32LoadDetail(chosen.url);
   if (!detail.dataId) {
-    return errorResponse("Could not extract data_id from detail page", 500);
+    return errorResponse("Could not extract data_id from detail page", 500, corsHeaders);
   }
 
   // Step 4: Get video servers
   const servers = await w32GetMovieServers(detail.dataId);
   if (!servers.length) {
-    return errorResponse("No video servers found", 404);
+    return errorResponse("No video servers found", 404, corsHeaders);
   }
 
   // Step 5: Extract video links from each server (process in parallel)
@@ -573,12 +599,12 @@ async function handleMovie(tmdbId) {
     duration: detail.duration || null,
     watch32Url: chosen.url,
     servers: serverResults,
-  });
+  }, 200, corsHeaders);
 }
 
-async function handleTv(tmdbId, season, episode) {
+async function handleTv(tmdbId, season, episode, corsHeaders, TMDB_API_KEY) {
   // Step 1: Get TV show title from TMDB
-  const tmdbData = await tmdbGetTv(tmdbId);
+  const tmdbData = await tmdbGetTv(tmdbId, TMDB_API_KEY);
   const title = tmdbData.name || "";
   const year = (tmdbData.first_air_date || "").substring(0, 4);
   const overview = tmdbData.overview || "";
@@ -587,7 +613,7 @@ async function handleTv(tmdbId, season, episode) {
     : null;
 
   if (!title) {
-    return errorResponse(`No TV show found on TMDB with ID: ${tmdbId}`, 404);
+    return errorResponse(`No TV show found on TMDB with ID: ${tmdbId}`, 404, corsHeaders);
   }
 
   // Step 2: Search Watch32
@@ -595,31 +621,33 @@ async function handleTv(tmdbId, season, episode) {
   if (!searchResults.length) {
     return errorResponse(
       `No results on Watch32 for "${title}"`,
-      404
+      404,
+      corsHeaders
     );
   }
 
   const chosen = pickBestResult(searchResults, title, "tv");
   if (!chosen) {
-    return errorResponse("Could not match a result on Watch32", 404);
+    return errorResponse("Could not match a result on Watch32", 404, corsHeaders);
   }
 
   // Step 3: Load detail page
   const detail = await w32LoadDetail(chosen.url);
   if (!detail.dataId) {
-    return errorResponse("Could not extract data_id from detail page", 500);
+    return errorResponse("Could not extract data_id from detail page", 500, corsHeaders);
   }
 
   // Step 4: Get seasons
   const seasonIds = await w32GetSeasonList(detail.dataId);
   if (!seasonIds.length) {
-    return errorResponse("No seasons found", 404);
+    return errorResponse("No seasons found", 404, corsHeaders);
   }
 
   if (season < 1 || season > seasonIds.length) {
     return errorResponse(
       `Season ${season} not available. This show has ${seasonIds.length} season(s).`,
-      404
+      404,
+      corsHeaders
     );
   }
 
@@ -629,14 +657,16 @@ async function handleTv(tmdbId, season, episode) {
   if (!episodes.length) {
     return errorResponse(
       `No episodes found for season ${season}`,
-      404
+      404,
+      corsHeaders
     );
   }
 
   if (episode < 1 || episode > episodes.length) {
     return errorResponse(
       `Episode ${episode} not available in season ${season}. This season has ${episodes.length} episode(s).`,
-      404
+      404,
+      corsHeaders
     );
   }
 
@@ -647,7 +677,8 @@ async function handleTv(tmdbId, season, episode) {
   if (!servers.length) {
     return errorResponse(
       `No video servers found for S${season}E${episode}`,
-      404
+      404,
+      corsHeaders
     );
   }
 
@@ -684,61 +715,42 @@ async function handleTv(tmdbId, season, episode) {
     totalEpisodesInSeason: episodes.length,
     watch32Url: chosen.url,
     servers: serverResults,
-  });
+  }, 200, corsHeaders);
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 export default {
-  async fetch(request) {
+  async fetch(request, env, ctx) {
+    // Auth check first (skip for OPTIONS)
+    if (request.method !== "OPTIONS") {
+      const authError = checkAuth(request, env);
+      if (authError) return authError;
+    }
+
+    const corsHeaders = getCorsHeaders(request, env);
+    const TMDB_API_KEY = env.TMDB_API_KEY || "297f1b91919bae59d50ed815f8d2e14c";
     const url = new URL(request.url);
     const path = url.pathname;
 
     // CORS preflight
     if (request.method === "OPTIONS") {
       return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-        },
+        status: 204,
+        headers: corsHeaders,
       });
     }
 
     try {
       // GET /
       if (path === "/" || path === "") {
-        return handleRoot(request);
-      }
-
-      // GET /debug/search/{query} — raw search debug
-      const debugMatch = path.match(/^\/debug\/search\/(.+)$/);
-      if (debugMatch) {
-        const query = decodeURIComponent(debugMatch[1]);
-        const searchResp = await fetch(`${WATCH32_BASE}/ajax/search`, {
-          method: "POST",
-          headers: {
-            ...HEADERS,
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Requested-With": "XMLHttpRequest",
-          },
-          body: `keyword=${encodeURIComponent(query)}`,
-        });
-        const rawHtml = await searchResp.text();
-        const { results } = await w32Search(query);
-        return jsonResponse({
-          query,
-          status: searchResp.status,
-          rawHtmlLength: rawHtml.length,
-          rawHtmlPreview: rawHtml.substring(0, 2000),
-          parsedResults: results,
-        });
+        return handleRoot(request, corsHeaders);
       }
 
       // GET /movie/{tmdbId}
       const movieMatch = path.match(/^\/movie\/(\d+)\/?$/);
       if (movieMatch) {
-        return await handleMovie(movieMatch[1]);
+        return await handleMovie(movieMatch[1], corsHeaders, TMDB_API_KEY);
       }
 
       // GET /tv/{tmdbId}/{season}/{episode}
@@ -747,16 +759,19 @@ export default {
         return await handleTv(
           tvMatch[1],
           parseInt(tvMatch[2], 10),
-          parseInt(tvMatch[3], 10)
+          parseInt(tvMatch[3], 10),
+          corsHeaders,
+          TMDB_API_KEY
         );
       }
 
       return errorResponse(
         "Not found. Use /movie/{tmdbId} or /tv/{tmdbId}/{season}/{episode}",
-        404
+        404,
+        corsHeaders
       );
     } catch (err) {
-      return errorResponse(`Internal error: ${err.message}`, 500);
+      return errorResponse(`Internal error: ${err.message}`, 500, corsHeaders);
     }
   },
 };
