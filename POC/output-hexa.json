@@ -1,0 +1,32 @@
+{
+  "movie": {
+    "success": true,
+    "streams": [
+      {
+        "url": "https://p.10020.workers.dev/frostcomet5.pro/file2/SUMXM8CzI4vH429D2w5JnmdH13bgPlQJCxxnNP7917D07RpU1YTu1CTwqjqH60efnr6FhSb1psZf3sQOPYQVOcOEUvJ2e7eOsJlxis3M~7ap7e4rPP3BGwDl8xOSbYeFEf6iR1Fl8209~5OUuE7qvMHa4eXHW~rI~TaNcZTuHE4=/cGxheWxpc3QubTN1OA==.m3u8",
+        "quality": "Auto",
+        "title": "Hexa Stream",
+        "streamType": "hls",
+        "referer": "",
+        "language": "en"
+      }
+    ],
+    "provider": "hexa",
+    "durationMs": 1827
+  },
+  "tv": {
+    "success": true,
+    "streams": [
+      {
+        "url": "https://p.10020.workers.dev/thunderleaf12.online/file2/URvacNgbRRt9YqnSe2X1OhO1bexc2tfhNmwmKw4E4CCThu0kDGB9AV+DL2I84pcBiL79x0ntvPxkTnz6y16gd+ii9frl98+3CtLGWmmuifEDsVqW9JtyEwwCp5yw14oGPUJvQ40XBnQ1C2RHg8fJ7KmlfNclLalMfWHzormJjXg=/cGxheWxpc3QubTN1OA==.m3u8",
+        "quality": "Auto",
+        "title": "Hexa Stream",
+        "streamType": "hls",
+        "referer": "",
+        "language": "en"
+      }
+    ],
+    "provider": "hexa",
+    "durationMs": 1850
+  }
+}

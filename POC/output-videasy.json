@@ -1,0 +1,79 @@
+{
+  "movie": {
+    "success": true,
+    "streams": [
+      {
+        "url": "https://p.10020.workers.dev/afc7d47f/zgIiaBSbD1Hk45ZmAUTCCTsDpVFGgpiOnRhtF90jzvnZmSmo37PilQ8e5SyRmdjjf7O9Oz3j3Se91joQV2iC8oCRZsY5AlKykakr9_WMp_kyHv-EOiZ6GPfA8OmtEzEDFTPusSAeLu-60IZ9xBb-pG4QRq1zY5-ANPuViX3sUgkL83rtAu9ftB_DQ5ZUw45A9J247ELICflAVJxXZZ76vtJW8us3zYxkBIOJks9Qgt8ny6pvYCAeO9S-PfwAa1CkqvgyG1OBRQB5doSxqh0zCxaloNR4-NpaMzNBYGh4AEyyDQ-LunvPCN284rXN3m5U2JvOgx42k1N78RZFJ7dWo41uyl7D1HOquyldjzet9rnKz7euO1ZkHqe_jLauTgzTLFssBQhnYx0LoncbiMVZpA.m3u8",
+        "quality": "Auto",
+        "title": "Videasy - Sage",
+        "streamType": "hls",
+        "referer": "https://videasy.net/",
+        "server": "Sage",
+        "language": "en"
+      },
+      {
+        "url": "https://main-mp4.randomrainever.workers.dev/mp4/MlJMcWFQcmw1K3NnK3lkb0lXNzNvQT09Ollzd2RTMGFqenhOellhUXYvVmx3d2RPYjRhNVdhUExkaXFmVVd2U1BoRjZxWWZRTFJCUE9mTjNJd2wyclFTWEdOWTN3OGhFcExzVk96eGtPR1RHa1FKSnlINk9GOUpWQk8rQTRsblRIRzEwMXJxZXVpbGZ5UnNzcXpVOVR3OXplNHVwOXhJUTg4aGdIL09TQXZxeDNkMlJWSmh5TGZWck4vYjdkakpLWU5XNmtBUnRQcDhUY0x2L2I5K0VZekgwVjlmcVVzOHlVOVZDbzFMYnd4UDIrWk1oemJWRWgzOEpDMWg3VGcwWnhXa2tmZzl3a2RMRE9JNkhxUWZLcmlmYmhwTnpHbDRicjcvcWc1NHFpRG1KTnpRPT0=",
+        "quality": "Auto",
+        "title": "Videasy - Cypher",
+        "streamType": "hls",
+        "referer": "https://videasy.net/",
+        "server": "Cypher",
+        "language": "en"
+      },
+      {
+        "url": "https://one.trueparadise.workers.dev/rainorbit33.xyz/file2/SUMXM8CzI4vH429D2w5JnmdH13bgPlQJCxxnNP7917D07RpU1YTu1CTwqjqH60efnr6FhSb1psZf3sQOPYQVOcOEUvJ2e7eOsJlxis3M~7ap7e4rPP3BGwDl8xOSbYeFEf6iR1Fl8209~5OUuE7qvMHa4eXHW~rI~TaNcZTuHE4=/MTA4MA==/aW5kZXgubTN1OA==.m3u8",
+        "quality": "Auto",
+        "title": "Videasy - Neon",
+        "streamType": "hls",
+        "referer": "https://videasy.net/",
+        "server": "Neon",
+        "language": "en"
+      },
+      {
+        "url": "https://bold.falseparadise.workers.dev/video.m3u8?q=SEJkbUg2R01kbWcwcXB6a0FoQnlNdzp6MkhOc2VueGw3VFg0M09NbFptRXh1eVFlcFdQYVpqckRlbmJLSzVvRGFSUVlXMDJQTFBKdXNDM1ZFdFg1T2psVGVBeDJ4Qy1icXEzcHJCWG52LU84UQ",
+        "quality": "Auto",
+        "title": "Videasy - Yoru",
+        "streamType": "hls",
+        "referer": "https://videasy.net/",
+        "server": "Yoru",
+        "language": "en"
+      }
+    ],
+    "provider": "videasy",
+    "durationMs": 670
+  },
+  "tv": {
+    "success": true,
+    "streams": [
+      {
+        "url": "https://p.10020.workers.dev/afc7d47f/zgIiaBSbD1Hk45ZmAUTCCTsDpVFGgpiOnRhtF90jzvlLkwjnzKr-qQNUOQuFE49el_RZ_owVz3wH2zW7baVOmxIO_qrs4f0IbVXzjG8y_NNgBaKwMWGCymcTSp18vnare22hEFuzaGPXNl2gKu5sD_gqQvBU2aQeGf_n0ecUGm4fQ7yp5NrGtvl4SE9DxgQl45h70zAxl7ZUI4Ut4_59F1TSiZizXe0_rN73OgbeOAQAniLoGshtvYKlsbQEwaPYQUEMCAm0dSuQcNJu2YVlTdLqTSj2N7LvZymcCmztyiGkjZV4Z1uMOKKSbbFl6Mwh2t5FEAZkXqEnDTC2A_JGLvCTsK7bgbOzbz6vDkr67FkTIZZsLELlDk_Z0YRM6x4sVMewcku8ifr9f3UtdctOAw.m3u8",
+        "quality": "Auto",
+        "title": "Videasy - Sage",
+        "streamType": "hls",
+        "referer": "https://videasy.net/",
+        "server": "Sage",
+        "language": "en"
+      },
+      {
+        "url": "https://main-mp4.randomrainever.workers.dev/mp4/VEhWK2JNb09QSHRTaGhGbkJrRWcrdz09OnpnTUdvbDVIazcyQlo1Sm9hTmpyU2ZTekwwNzdoN1lGN1pVVjVibThtTVB6RHN0SHFpSWpDNDcwaHRqT0RLMmUvWXZTWEtJT2NaOFp2NmpPY1VXU09RL2RnK01MdUxLbmR1QmZTS3YzQzVVVmp3SC9KeWJRQVB0bGlqNmRTVXlNWDNvV0ZJeWxCMzJld2hnbFlyT3lqZzVSaC9zY1FpVXd6bmM5YzF3UHE1d3IwOXR4S3hCUE8rYmk5MkhXUEo3elNzemdXQ05qbWVUT0Y3bG5JS2pKQkdzWXpaL3N2TEQ3WWpWWjg0OVlpZ24wR3VtNEFIeW9VSkVob2d0SFpWUGRZUmhxR2dyd2lTTHppM1RTdXQvM01nPT0=",
+        "quality": "Auto",
+        "title": "Videasy - Cypher",
+        "streamType": "hls",
+        "referer": "https://videasy.net/",
+        "server": "Cypher",
+        "language": "en"
+      },
+      {
+        "url": "https://one.trueparadise.workers.dev/aurorabird6.live/file2/URvacNgbRRt9YqnSe2X1OhO1bexc2tfhNmwmKw4E4CCThu0kDGB9AV+DL2I84pcBiL79x0ntvPxkTnz6y16gd+ii9frl98+3CtLGWmmuifEDsVqW9JtyEwwCp5yw14oGPUJvQ40XBnQ1C2RHg8fJ7KmlfNclLalMfWHzormJjXg=/MTA4MA==/aW5kZXgubTN1OA==.m3u8",
+        "quality": "Auto",
+        "title": "Videasy - Neon",
+        "streamType": "hls",
+        "referer": "https://videasy.net/",
+        "server": "Neon",
+        "language": "en"
+      }
+    ],
+    "provider": "videasy",
+    "durationMs": 430
+  }
+}

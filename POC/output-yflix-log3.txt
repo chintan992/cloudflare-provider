@@ -1,0 +1,156 @@
+﻿[DEBUG] Registered content ID lookup provider { provider: 'animekai', name: 'AnimeKai', logCategory: 'streams' }
+[DEBUG] Registered content ID lookup provider { provider: 'kisskh', name: 'KissKH', logCategory: 'streams' }
+[DEBUG] Registered content ID lookup provider { provider: 'yflix', name: 'YFlix', logCategory: 'streams' }
+[DEBUG] Registered content ID lookup provider { provider: 'onetouchtv', name: 'OneTouchTV', logCategory: 'streams' }
+--- Testing Movie (Fight Club) ---
+[DEBUG] Starting extraction {
+  provider: 'yflix',
+  tmdbId: '550',
+  type: 'movie',
+  logCategory: 'streams'
+}
+[DEBUG] Finding YFlix by ID { tmdb_id: '550', type: 'movie', logCategory: 'streams' }
+[DEBUG] YFlix found via database {
+  tmdbId: '550',
+  contentId: 'e4S_-A',
+  episodeId: 'dYe5-A',
+  title: 'Fight Club',
+  logCategory: 'streams'
+}
+[DEBUG] Cached content ID lookup {
+  provider: 'yflix',
+  tmdbId: '550',
+  contentId: 'e4S_-A',
+  ttlMinutes: 10080,
+  logCategory: 'streams'
+}
+[DEBUG] Content ID lookup succeeded {
+  provider: 'yflix',
+  tmdbId: '550',
+  title: 'Fight Club',
+  contentId: 'e4S_-A',
+  durationMs: 193,
+  logCategory: 'streams'
+}
+[DEBUG] YFlix content ID resolved {
+  tmdbId: '550',
+  contentId: 'e4S_-A',
+  episodeId: 'dYe5-A',
+  cached: false,
+  durationMs: 193,
+  logCategory: 'streams'
+}
+[DEBUG] YFlix using database episode ID (optimized path) { episodeId: 'dYe5-A', logCategory: 'streams' }
+[DEBUG] Encrypting text { provider: 'movies-flix', textLength: 6, logCategory: 'streams' }
+[DEBUG] Parsing HTML { htmlLength: 261, logCategory: 'streams' }
+[DEBUG] Encrypting text { provider: 'movies-flix', textLength: 10, logCategory: 'streams' }
+[DEBUG] Decrypting { provider: 'movies-flix', logCategory: 'streams' }
+[INFO] Hosters initialized {
+  count: 2,
+  hosters: [ 'megaup', 'rapidshare' ],
+  logCategory: 'streams'
+}
+[DEBUG] YFlix got hoster embed URL, resolving... {
+  embedUrl: 'https://rapidairmax.site/e/0sioJ2C_WS2JcOLyE7tN7BvpCQ',
+  logCategory: 'streams'
+}
+[DEBUG] Resolving embed URL via hoster {
+  provider: 'yflix',
+  embedUrl: 'https://rapidairmax.site/e/0sioJ2C_WS2JcOLyE7tN7BvpCQ',
+  logCategory: 'streams'
+}
+[DEBUG] Resolving embed with hoster {
+  hoster: 'rapidshare',
+  embedUrl: 'https://rapidairmax.site/e/0sioJ2C_WS2JcOLyE7tN7BvpCQ',
+  logCategory: 'streams'
+}
+[DEBUG] Rapidshare resolving embed {
+  embedUrl: 'https://rapidairmax.site/e/0sioJ2C_WS2JcOLyE7tN7BvpCQ',
+  logCategory: 'streams'
+}
+[DEBUG] Rapidshare media URL {
+  mediaUrl: 'https://rapidairmax.site/media/0sioJ2C_WS2JcOLyE7tN7BvpCQ',
+  logCategory: 'streams'
+}
+[DEBUG] Decrypting Rapidshare stream { logCategory: 'streams' }
+[DEBUG] Rapidshare resolved streams { count: 1, logCategory: 'streams' }
+[DEBUG] Embed resolution successful {
+  provider: 'yflix',
+  hoster: 'rapidshare',
+  sourceCount: 1,
+  subtitleCount: 0,
+  durationMs: 384,
+  logCategory: 'streams'
+}
+[DEBUG] Extraction successful {
+  provider: 'yflix',
+  streamCount: 1,
+  durationMs: 1419,
+  logCategory: 'streams'
+}
+
+--- Testing TV Show (Breaking Bad S1E1) ---
+[DEBUG] Starting extraction {
+  provider: 'yflix',
+  tmdbId: '1396',
+  type: 'tv',
+  logCategory: 'streams'
+}
+[DEBUG] Finding YFlix by ID { tmdb_id: '1396', type: 'tv', logCategory: 'streams' }
+[DEBUG] YFlix found via database {
+  tmdbId: '1396',
+  contentId: 'c4Gz8aI',
+  episodeId: 'c4q58K8',
+  title: 'Breaking Bad',
+  logCategory: 'streams'
+}
+[DEBUG] Cached content ID lookup {
+  provider: 'yflix',
+  tmdbId: '1396',
+  contentId: 'c4Gz8aI',
+  ttlMinutes: 10080,
+  logCategory: 'streams'
+}
+[DEBUG] Content ID lookup succeeded {
+  provider: 'yflix',
+  tmdbId: '1396',
+  title: 'Breaking Bad',
+  contentId: 'c4Gz8aI',
+  durationMs: 68,
+  logCategory: 'streams'
+}
+[DEBUG] YFlix content ID resolved {
+  tmdbId: '1396',
+  contentId: 'c4Gz8aI',
+  episodeId: 'c4q58K8',
+  cached: false,
+  durationMs: 68,
+  logCategory: 'streams'
+}
+[DEBUG] YFlix using database episode ID (optimized path) { episodeId: 'c4q58K8', logCategory: 'streams' }
+[DEBUG] Encrypting text { provider: 'movies-flix', textLength: 7, logCategory: 'streams' }
+[DEBUG] Parsing HTML { htmlLength: 257, logCategory: 'streams' }
+[DEBUG] Encrypting text { provider: 'movies-flix', textLength: 8, logCategory: 'streams' }
+[DEBUG] Decrypting { provider: 'movies-flix', logCategory: 'streams' }
+[DEBUG] YFlix got hoster embed URL, resolving... {
+  embedUrl: 'https://rapidairmax.site/e/2c6penO_WS2JcOLyE7tN7BvpCQ?sub.list=https%3A%2F%2Fyflix.to%2Fajax%2Fepisode%2F19309%2Fsubtitles',
+  logCategory: 'streams'
+}
+[DEBUG] Resolving embed URL via hoster {
+  provider: 'yflix',
+  embedUrl: 'https://rapidairmax.site/e/2c6penO_WS2JcOLyE7tN7BvpCQ?sub.list=https%3A%2F%2Fyflix.to%2Fajax%2Fepisode%2F19309%2Fsubtitles',
+  logCategory: 'streams'
+}
+[DEBUG] Resolving embed with hoster {
+  hoster: 'rapidshare',
+  embedUrl: 'https://rapidairmax.site/e/2c6penO_WS2JcOLyE7tN7BvpCQ?sub.list=https%3A%2F%2Fyflix.to%2Fajax%2Fepisode%2F19309%2Fsubtitles',
+  logCategory: 'streams'
+}
+[DEBUG] Rapidshare resolving embed {
+  embedUrl: 'https://rapidairmax.site/e/2c6penO_WS2JcOLyE7tN7BvpCQ?sub.list=https%3A%2F%2Fyflix.to%2Fajax%2Fepisode%2F19309%2Fsubtitles',
+  logCategory: 'streams'
+}
+[DEBUG] Rapidshare media URL {
+  mediaUrl: 'https://rapidairmax.site/media/2c6penO_WS2JcOLyE7tN7BvpCQ?sub.list=https%3A%2F%2Fyflix.to%2Fajax%2Fepisode%2F19309%2Fsubtitles',
+  logCategory: 'streams'
+}

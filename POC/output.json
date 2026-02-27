@@ -1,0 +1,32 @@
+{
+  "movie": {
+    "success": true,
+    "streams": [
+      {
+        "url": "https://storm.vodvidl.site/proxy/file2%2FSUMXM8CzI4vH429D2w5JnmdH13bgPlQJCxxnNP7917D07RpU1YTu1CTwqjqH60efnr6FhSb1psZf3sQOPYQVOcOEUvJ2e7eOsJlxis3M~7ap7e4rPP3BGwDl8xOSbYeFEf6iR1Fl8209~5OUuE7qvMHa4eXHW~rI~TaNcZTuHE4%3D%2FcGxheWxpc3QubTN1OA%3D%3D.m3u8?headers={\"referer\":\"https://videostr.net/\",\"origin\":\"https://videostr.net\"}&host=https://skyember44.online",
+        "quality": "Auto",
+        "title": "Vidlink Stream",
+        "streamType": "hls",
+        "referer": "https://vidlink.pro/",
+        "language": "en"
+      }
+    ],
+    "provider": "vidlink",
+    "durationMs": 551
+  },
+  "tv": {
+    "success": true,
+    "streams": [
+      {
+        "url": "https://storm.vodvidl.site/proxy/file2%2FURvacNgbRRt9YqnSe2X1OhO1bexc2tfhNmwmKw4E4CCThu0kDGB9AV%2BDL2I84pcBiL79x0ntvPxkTnz6y16gd%2Bii9frl98%2B3CtLGWmmuifEDsVqW9JtyEwwCp5yw14oGPUJvQ40XBnQ1C2RHg8fJ7KmlfNclLalMfWHzormJjXg%3D%2FcGxheWxpc3QubTN1OA%3D%3D.m3u8?headers={\"referer\":\"https://videostr.net/\",\"origin\":\"https://videostr.net\"}&host=https://nightbreeze17.site",
+        "quality": "Auto",
+        "title": "Vidlink Stream",
+        "streamType": "hls",
+        "referer": "https://vidlink.pro/",
+        "language": "en"
+      }
+    ],
+    "provider": "vidlink",
+    "durationMs": 333
+  }
+}
