@@ -13,6 +13,8 @@
 // Constants
 // ============================================================================
 
+const ALLOWED_ORIGIN = 'https://letsstream2.pages.dev';
+
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
 
@@ -34,9 +36,10 @@ const YFLIX_HEADERS = {
 };
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
+  'Vary': 'Origin',
 };
 
 // ============================================================================
@@ -470,16 +473,45 @@ async function handleTv(tmdbId, season, episode) {
 
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const { pathname } = url;
+    // Check origin
+    const origin = request.headers.get('Origin');
+    const isAllowedOrigin = origin === ALLOWED_ORIGIN;
 
-    // Handle CORS preflight
+    if (!isAllowedOrigin) {
+      return new Response(JSON.stringify({ error: 'Forbidden: unauthorized origin' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Handle OPTIONS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
-        headers: CORS_HEADERS,
+        headers: {
+          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
+          'Vary': 'Origin'
+        }
       });
     }
+
+    // Check API key
+    const apiKey = request.headers.get('X-Api-Key');
+    if (!apiKey || apiKey !== env.API_KEY) {
+      return new Response(JSON.stringify({ error: 'Unauthorized: invalid or missing API key' }), {
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Vary': 'Origin'
+        }
+      });
+    }
+
+    const url = new URL(request.url);
+    const { pathname } = url;
 
     // Only allow GET requests
     if (request.method !== 'GET') {
@@ -495,7 +527,7 @@ export default {
         return jsonResponse(result);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
-        return jsonResponse(errorResponse('movie', parseInt(tmdbId, 10), null, null, errorMsg));
+        return errorResponse('movie', parseInt(tmdbId, 10), null, null, errorMsg);
       }
     }
 
@@ -510,14 +542,12 @@ export default {
         return jsonResponse(result);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
-        return jsonResponse(
-          errorResponse(
-            'tv',
-            parseInt(tmdbId, 10),
-            parseInt(season, 10),
-            parseInt(episode, 10),
-            errorMsg
-          )
+        return errorResponse(
+          'tv',
+          parseInt(tmdbId, 10),
+          parseInt(season, 10),
+          parseInt(episode, 10),
+          errorMsg
         );
       }
     }

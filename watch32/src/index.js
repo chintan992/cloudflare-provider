@@ -11,9 +11,10 @@
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const ALLOWED_ORIGIN = 'https://letsstream2.pages.dev';
+
 const WATCH32_BASE = "https://watch32.sx";
 const VIDEOSTR_BASE = "https://videostr.net";
-const TMDB_API_KEY = "297f1b91919bae59d50ed815f8d2e14c";
 const TMDB_API_BASE = "https://api.themoviedb.org/3";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
 
@@ -43,9 +44,10 @@ function jsonResponse(data, status = 200) {
     status,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
       "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+      "Vary": "Origin",
     },
   });
 }
@@ -56,7 +58,7 @@ function errorResponse(message, status = 400) {
 
 // ─── TMDB Helpers ─────────────────────────────────────────────────────────────
 
-async function tmdbGetMovie(tmdbId) {
+async function tmdbGetMovie(tmdbId, TMDB_API_KEY) {
   const resp = await fetch(
     `${TMDB_API_BASE}/movie/${tmdbId}?api_key=${TMDB_API_KEY}&language=en-US`,
     { headers: HEADERS }
@@ -65,7 +67,7 @@ async function tmdbGetMovie(tmdbId) {
   return resp.json();
 }
 
-async function tmdbGetTv(tmdbId) {
+async function tmdbGetTv(tmdbId, TMDB_API_KEY) {
   const resp = await fetch(
     `${TMDB_API_BASE}/tv/${tmdbId}?api_key=${TMDB_API_KEY}&language=en-US`,
     { headers: HEADERS }
@@ -504,9 +506,9 @@ async function handleRoot(request) {
   });
 }
 
-async function handleMovie(tmdbId) {
+async function handleMovie(tmdbId, TMDB_API_KEY) {
   // Step 1: Get movie title from TMDB
-  const tmdbData = await tmdbGetMovie(tmdbId);
+  const tmdbData = await tmdbGetMovie(tmdbId, TMDB_API_KEY);
   const title = tmdbData.title || "";
   const year = (tmdbData.release_date || "").substring(0, 4);
   const overview = tmdbData.overview || "";
@@ -576,9 +578,9 @@ async function handleMovie(tmdbId) {
   });
 }
 
-async function handleTv(tmdbId, season, episode) {
+async function handleTv(tmdbId, season, episode, TMDB_API_KEY) {
   // Step 1: Get TV show title from TMDB
-  const tmdbData = await tmdbGetTv(tmdbId);
+  const tmdbData = await tmdbGetTv(tmdbId, TMDB_API_KEY);
   const title = tmdbData.name || "";
   const year = (tmdbData.first_air_date || "").substring(0, 4);
   const overview = tmdbData.overview || "";
@@ -690,20 +692,48 @@ async function handleTv(tmdbId, season, episode) {
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 export default {
-  async fetch(request) {
-    const url = new URL(request.url);
-    const path = url.pathname;
+  async fetch(request, env) {
+    // Check origin
+    const origin = request.headers.get('Origin');
+    const isAllowedOrigin = origin === ALLOWED_ORIGIN;
 
-    // CORS preflight
-    if (request.method === "OPTIONS") {
-      return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-        },
+    if (!isAllowedOrigin) {
+      return new Response(JSON.stringify({ error: 'Forbidden: unauthorized origin' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    // Handle OPTIONS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
+          'Vary': 'Origin'
+        }
+      });
+    }
+
+    // Check API key
+    const apiKey = request.headers.get('X-Api-Key');
+    if (!apiKey || apiKey !== env.API_KEY) {
+      return new Response(JSON.stringify({ error: 'Unauthorized: invalid or missing API key' }), {
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Vary': 'Origin'
+        }
+      });
+    }
+
+    const TMDB_API_KEY = env.TMDB_API_KEY;
+
+    const url = new URL(request.url);
+    const path = url.pathname;
 
     try {
       // GET /
@@ -711,34 +741,10 @@ export default {
         return handleRoot(request);
       }
 
-      // GET /debug/search/{query} — raw search debug
-      const debugMatch = path.match(/^\/debug\/search\/(.+)$/);
-      if (debugMatch) {
-        const query = decodeURIComponent(debugMatch[1]);
-        const searchResp = await fetch(`${WATCH32_BASE}/ajax/search`, {
-          method: "POST",
-          headers: {
-            ...HEADERS,
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Requested-With": "XMLHttpRequest",
-          },
-          body: `keyword=${encodeURIComponent(query)}`,
-        });
-        const rawHtml = await searchResp.text();
-        const { results } = await w32Search(query);
-        return jsonResponse({
-          query,
-          status: searchResp.status,
-          rawHtmlLength: rawHtml.length,
-          rawHtmlPreview: rawHtml.substring(0, 2000),
-          parsedResults: results,
-        });
-      }
-
       // GET /movie/{tmdbId}
       const movieMatch = path.match(/^\/movie\/(\d+)\/?$/);
       if (movieMatch) {
-        return await handleMovie(movieMatch[1]);
+        return await handleMovie(movieMatch[1], TMDB_API_KEY);
       }
 
       // GET /tv/{tmdbId}/{season}/{episode}
@@ -747,7 +753,8 @@ export default {
         return await handleTv(
           tvMatch[1],
           parseInt(tvMatch[2], 10),
-          parseInt(tvMatch[3], 10)
+          parseInt(tvMatch[3], 10),
+          TMDB_API_KEY
         );
       }
 

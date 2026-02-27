@@ -7,6 +7,8 @@
  *   GET /tv/{tmdbId}/{season}/{ep}  → TV episode video links
  */
 
+const ALLOWED_ORIGIN = 'https://letsstream2.pages.dev';
+
 const API_BASE = "https://api.streamflix.app";
 const FIREBASE_REST =
   "https://chilflix-410be-default-rtdb.asia-southeast1.firebasedatabase.app";
@@ -26,9 +28,10 @@ function jsonResponse(data, status = 200) {
     status,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
       "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+      "Vary": "Origin",
     },
   });
 }
@@ -230,20 +233,46 @@ async function handleTv(tmdbId, season, episode) {
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 export default {
-  async fetch(request) {
-    const url = new URL(request.url);
-    const path = url.pathname;
+  async fetch(request, env) {
+    // Check origin
+    const origin = request.headers.get('Origin');
+    const isAllowedOrigin = origin === ALLOWED_ORIGIN;
 
-    // CORS preflight
-    if (request.method === "OPTIONS") {
-      return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-        },
+    if (!isAllowedOrigin) {
+      return new Response(JSON.stringify({ error: 'Forbidden: unauthorized origin' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    // Handle OPTIONS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
+          'Vary': 'Origin'
+        }
+      });
+    }
+
+    // Check API key
+    const apiKey = request.headers.get('X-Api-Key');
+    if (!apiKey || apiKey !== env.API_KEY) {
+      return new Response(JSON.stringify({ error: 'Unauthorized: invalid or missing API key' }), {
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+          'Vary': 'Origin'
+        }
+      });
+    }
+
+    const url = new URL(request.url);
+    const path = url.pathname;
 
     try {
       // GET /

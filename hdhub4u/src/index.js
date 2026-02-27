@@ -1,13 +1,52 @@
+const ALLOWED_ORIGIN = 'https://letsstream2.pages.dev';
+
 const HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     "Cookie": "xla=s4t",
     "Referer": "https://hdhub4u.rehab"
 };
 
-const TMDB_API_KEY = "297f1b91919bae59d50ed815f8d2e14c";
-
 export default {
     async fetch(request, env, ctx) {
+        // Check origin
+        const origin = request.headers.get('Origin');
+        const isAllowedOrigin = origin === ALLOWED_ORIGIN;
+
+        if (!isAllowedOrigin) {
+            return new Response(JSON.stringify({ error: 'Forbidden: unauthorized origin' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // Handle OPTIONS preflight
+        if (request.method === 'OPTIONS') {
+            return new Response(null, {
+                status: 204,
+                headers: {
+                    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+                    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
+                    'Vary': 'Origin'
+                }
+            });
+        }
+
+        // Check API key
+        const apiKey = request.headers.get('X-Api-Key');
+        if (!apiKey || apiKey !== env.API_KEY) {
+            return new Response(JSON.stringify({ error: 'Unauthorized: invalid or missing API key' }), {
+                status: 401,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+                    'Vary': 'Origin'
+                }
+            });
+        }
+
+        const TMDB_API_KEY = env.TMDB_API_KEY;
+
         const url = new URL(request.url);
         const path = url.pathname;
 
@@ -17,17 +56,17 @@ export default {
         try {
             if (movieMatch) {
                 const tmdbId = movieMatch[1];
-                return await handleRequest(tmdbId, 'movie', null, null);
+                return await handleRequest(tmdbId, 'movie', null, null, TMDB_API_KEY, env);
             } else if (tvMatch) {
                 const tmdbId = tvMatch[1];
                 const season = tvMatch[2];
                 const episode = tvMatch[3];
-                return await handleRequest(tmdbId, 'tv', season, episode);
+                return await handleRequest(tmdbId, 'tv', season, episode, TMDB_API_KEY, env);
             }
         } catch (error) {
-            return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
+            return new Response(JSON.stringify({ error: error.message }), {
                 status: 500,
-                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+                headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': ALLOWED_ORIGIN, 'Vary': 'Origin' }
             });
         }
 
@@ -35,7 +74,7 @@ export default {
     }
 };
 
-async function handleRequest(tmdbId, type, season, episode) {
+async function handleRequest(tmdbId, type, season, episode, TMDB_API_KEY, env) {
     let query = '';
     if (type === 'movie') {
         const res = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${TMDB_API_KEY}`);
@@ -171,7 +210,7 @@ async function handleRequest(tmdbId, type, season, episode) {
                         });
                     }
                 } else if (finalLink.toLowerCase().includes("vidstack") || finalLink.toLowerCase().includes("hubstream")) {
-                    const m3u8 = await extractVidstack(finalLink);
+                    const m3u8 = await extractVidstack(finalLink, env);
                     if (m3u8 && m3u8.endsWith(".m3u8")) {
                         resolvedLinks.push({
                             name: "HDHub4u",
@@ -202,7 +241,8 @@ function jsonResponse(data) {
         status: 200,
         headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+            'Vary': 'Origin'
         }
     });
 }
@@ -267,7 +307,7 @@ async function getRedirectLinks(url) {
     return url;
 }
 
-async function extractVidstack(url) {
+async function extractVidstack(url, env) {
     try {
         let hash_val = "";
         if (url.includes("#")) {
@@ -290,7 +330,7 @@ async function extractVidstack(url) {
         const res = await fetch(apiUrl, { headers: reqHeaders });
         const encoded = (await res.text()).trim();
 
-        const keyData = new TextEncoder().encode("kiemtienmua911ca");
+        const keyData = new TextEncoder().encode(env.AES_KEY);
         const importedKey = await crypto.subtle.importKey(
             "raw",
             keyData,
