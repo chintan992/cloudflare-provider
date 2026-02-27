@@ -1,20 +1,40 @@
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+function getCorsHeaders(request, env) {
+  const allowedOrigins = (env.ALLOWED_ORIGINS || "").split(",").map(o => o.trim()).filter(Boolean);
+  const requestOrigin = request.headers.get("Origin") || "";
+  const matchedOrigin = allowedOrigins.find(o => o === requestOrigin);
+  const origin = matchedOrigin || (allowedOrigins[0] || "*");
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+    "Vary": "Origin",
+  };
+}
 
-function jsonResponse(data, status = 200) {
+function checkAuth(request, env) {
+  if (!env.API_KEY) return null; // auth not configured, allow all
+  if (request.method === "OPTIONS") return null; // skip for preflight
+  const key = request.headers.get("X-Api-Key");
+  if (key !== env.API_KEY) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return null;
+}
+
+function jsonResponse(data, status = 200, corsHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "Content-Type": "application/json",
-      ...CORS_HEADERS,
+      ...corsHeaders,
     },
   });
 }
 
-function errorResponse(type, tmdbId, season, episode, message) {
+function errorResponse(type, tmdbId, season, episode, message, corsHeaders = {}) {
   return jsonResponse({
     provider: "hexa",
     type,
@@ -24,7 +44,7 @@ function errorResponse(type, tmdbId, season, episode, message) {
     streams: [],
     success: false,
     error: message,
-  });
+  }, 200, corsHeaders);
 }
 
 function generateRandomHexKey() {
@@ -118,15 +138,22 @@ async function fetchHexaStream(type, tmdbId, season, episode) {
 
 export default {
   async fetch(request, env, ctx) {
+    // Auth check first (skip for OPTIONS)
+    if (request.method !== "OPTIONS") {
+      const authError = checkAuth(request, env);
+      if (authError) return authError;
+    }
+
+    const corsHeaders = getCorsHeaders(request, env);
     const url = new URL(request.url);
     const { pathname } = url;
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
     if (request.method !== "GET") {
-      return jsonResponse({ error: "Method not allowed" }, 405);
+      return jsonResponse({ error: "Method not allowed" }, 405, corsHeaders);
     }
 
     // Match /movie/{tmdb_id}
@@ -153,9 +180,9 @@ export default {
           ],
           success: true,
           error: null,
-        });
+        }, 200, corsHeaders);
       } catch (err) {
-        return errorResponse("movie", tmdbId, null, null, err.message || "Failed to fetch stream");
+        return errorResponse("movie", tmdbId, null, null, err.message || "Failed to fetch stream", corsHeaders);
       }
     }
 
@@ -185,12 +212,12 @@ export default {
           ],
           success: true,
           error: null,
-        });
+        }, 200, corsHeaders);
       } catch (err) {
-        return errorResponse("tv", tmdbId, season, episode, err.message || "Failed to fetch stream");
+        return errorResponse("tv", tmdbId, season, episode, err.message || "Failed to fetch stream", corsHeaders);
       }
     }
 
-    return jsonResponse({ error: "Not found" }, 404);
+    return jsonResponse({ error: "Not found" }, 404, corsHeaders);
   },
 };

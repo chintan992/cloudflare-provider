@@ -33,11 +33,35 @@ const YFLIX_HEADERS = {
   Accept: 'application/json',
 };
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+// ============================================================================
+// Security Helpers
+// ============================================================================
+
+function getCorsHeaders(request, env) {
+  const allowedOrigins = (env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
+  const requestOrigin = request.headers.get('Origin') || '';
+  const matchedOrigin = allowedOrigins.find(o => o === requestOrigin);
+  const origin = matchedOrigin || (allowedOrigins[0] || '*');
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Api-Key',
+    'Vary': 'Origin',
+  };
+}
+
+function checkAuth(request, env) {
+  if (!env.API_KEY) return null; // auth not configured, allow all
+  if (request.method === 'OPTIONS') return null; // skip for preflight
+  const key = request.headers.get('X-Api-Key');
+  if (key !== env.API_KEY) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  return null;
+}
 
 // ============================================================================
 // Response Helpers
@@ -46,12 +70,12 @@ const CORS_HEADERS = {
 /**
  * Build a JSON response with CORS headers
  */
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status = 200, corsHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       'Content-Type': 'application/json',
-      ...CORS_HEADERS,
+      ...corsHeaders,
     },
   });
 }
@@ -59,7 +83,7 @@ function jsonResponse(data, status = 200) {
 /**
  * Build a standard error response
  */
-function errorResponse(type, tmdbId, season, episode, errorMsg) {
+function errorResponse(type, tmdbId, season, episode, errorMsg, corsHeaders = {}) {
   return jsonResponse({
     provider: 'yflix',
     type,
@@ -70,7 +94,7 @@ function errorResponse(type, tmdbId, season, episode, errorMsg) {
     metadata: null,
     success: false,
     error: errorMsg,
-  });
+  }, 200, corsHeaders);
 }
 
 // ============================================================================
@@ -470,6 +494,13 @@ async function handleTv(tmdbId, season, episode) {
 
 export default {
   async fetch(request, env, ctx) {
+    // Auth check first (skip for OPTIONS)
+    if (request.method !== 'OPTIONS') {
+      const authError = checkAuth(request, env);
+      if (authError) return authError;
+    }
+
+    const corsHeaders = getCorsHeaders(request, env);
     const url = new URL(request.url);
     const { pathname } = url;
 
@@ -477,13 +508,13 @@ export default {
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
-        headers: CORS_HEADERS,
+        headers: corsHeaders,
       });
     }
 
     // Only allow GET requests
     if (request.method !== 'GET') {
-      return jsonResponse({ error: 'Method not allowed' }, 405);
+      return jsonResponse({ error: 'Method not allowed' }, 405, corsHeaders);
     }
 
     // Route: GET /movie/{tmdb_id}
@@ -492,10 +523,10 @@ export default {
       const tmdbId = movieMatch[1];
       try {
         const result = await handleMovie(tmdbId);
-        return jsonResponse(result);
+        return jsonResponse(result, 200, corsHeaders);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
-        return jsonResponse(errorResponse('movie', parseInt(tmdbId, 10), null, null, errorMsg));
+        return errorResponse('movie', parseInt(tmdbId, 10), null, null, errorMsg, corsHeaders);
       }
     }
 
@@ -507,17 +538,16 @@ export default {
       const episode = tvMatch[3];
       try {
         const result = await handleTv(tmdbId, season, episode);
-        return jsonResponse(result);
+        return jsonResponse(result, 200, corsHeaders);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
-        return jsonResponse(
-          errorResponse(
-            'tv',
-            parseInt(tmdbId, 10),
-            parseInt(season, 10),
-            parseInt(episode, 10),
-            errorMsg
-          )
+        return errorResponse(
+          'tv',
+          parseInt(tmdbId, 10),
+          parseInt(season, 10),
+          parseInt(episode, 10),
+          errorMsg,
+          corsHeaders
         );
       }
     }
@@ -528,7 +558,8 @@ export default {
         error: 'Not found',
         message: 'Valid routes: GET /movie/{tmdb_id} or GET /tv/{tmdb_id}/{season}/{episode}',
       },
-      404
+      404,
+      corsHeaders
     );
   },
 };
