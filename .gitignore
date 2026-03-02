@@ -1,17 +1,8 @@
 # Dependencies
-streamflix/node_modules/
-watch32/node_modules/
-hdhub4u/node_modules/
-vidlink/node_modules/
-streamflix/node_modules/
-POC/node_modules/
+node_modules/
 
 # Wrangler
-hdhub4u/.wrangler/
-vidlink/.wrangler/
-streamflix/.wrangler/
-POC/.wrangler/
-watch32/.wrangler/
+.wrangler/
 
 
 # Environment variables

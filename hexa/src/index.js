@@ -35,19 +35,32 @@ function generateRandomHexKey() {
     .join("");
 }
 
-function extractStreamUrl(result) {
-  if (typeof result === "string") {
-    return result;
+function extractStreamUrls(result) {
+  const streams = [];
+
+  // Check top-level properties
+  const topUrl = result.stream || result.file || result.url;
+  if (topUrl && typeof topUrl === "string") {
+    streams.push({
+      url: topUrl,
+      quality: "Auto",
+    });
   }
-  if (result.stream) return result.stream;
-  if (result.file) return result.file;
-  if (result.url) return result.url;
-  if (result.sources && result.sources.length > 0) {
-    const src = result.sources[0];
-    if (src.url) return src.url;
-    if (src.file) return src.file;
+
+  // Check sources array
+  if (result.sources && Array.isArray(result.sources)) {
+    for (const source of result.sources) {
+      const sourceUrl = source.url || source.file;
+      if (sourceUrl && typeof sourceUrl === "string") {
+        streams.push({
+          url: sourceUrl,
+          quality: source.server ? source.server : "Auto",
+        });
+      }
+    }
   }
-  return null;
+
+  return streams;
 }
 
 async function fetchHexaStream(type, tmdbId, season, episode) {
@@ -107,13 +120,13 @@ async function fetchHexaStream(type, tmdbId, season, episode) {
     throw new Error("Decryption API returned unexpected response");
   }
 
-  const streamUrl = extractStreamUrl(decData.result);
+  const streamUrls = extractStreamUrls(decData.result);
 
-  if (!streamUrl) {
-    throw new Error("Could not extract stream URL from decrypted result");
+  if (!streamUrls || streamUrls.length === 0) {
+    throw new Error("Could not extract any stream URLs from decrypted result");
   }
 
-  return streamUrl;
+  return streamUrls;
 }
 
 export default {
@@ -134,23 +147,22 @@ export default {
     if (movieMatch) {
       const tmdbId = parseInt(movieMatch[1], 10);
       try {
-        const streamUrl = await fetchHexaStream("movie", tmdbId, null, null);
+        const streamUrls = await fetchHexaStream("movie", tmdbId, null, null);
         return jsonResponse({
           provider: "hexa",
           type: "movie",
           tmdb_id: tmdbId,
           season: null,
           episode: null,
-          streams: [
-            {
-              url: streamUrl,
-              quality: "Auto",
-              title: "Hexa Stream",
-              stream_type: "hls",
-              referer: "",
-              language: "en",
-            },
-          ],
+          streams: streamUrls.map((s) => ({
+            url: s.url,
+            quality: s.quality,
+            title: "Hexa Stream",
+            stream_type: "hls",
+            referer: "",
+            headers: { Origin: "" },
+            language: "en",
+          })),
           success: true,
           error: null,
         });
@@ -166,23 +178,22 @@ export default {
       const season = parseInt(tvMatch[2], 10);
       const episode = parseInt(tvMatch[3], 10);
       try {
-        const streamUrl = await fetchHexaStream("tv", tmdbId, season, episode);
+        const streamUrls = await fetchHexaStream("tv", tmdbId, season, episode);
         return jsonResponse({
           provider: "hexa",
           type: "tv",
           tmdb_id: tmdbId,
           season,
           episode,
-          streams: [
-            {
-              url: streamUrl,
-              quality: "Auto",
-              title: "Hexa Stream",
-              stream_type: "hls",
-              referer: "",
-              language: "en",
-            },
-          ],
+          streams: streamUrls.map((s) => ({
+            url: s.url,
+            quality: s.quality,
+            title: "Hexa Stream",
+            stream_type: "hls",
+            referer: "",
+            headers: { Origin: "" },
+            language: "en",
+          })),
           success: true,
           error: null,
         });

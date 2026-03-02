@@ -88,27 +88,46 @@ export class HexaProvider extends BaseProvider {
 			key: key
 		});
 
-		// Extract stream URL (API returns sources[].url, not sources[].file)
-		const streamUrl =
-			decrypted.stream ||
-			decrypted.file ||
-			decrypted.url ||
-			decrypted.sources?.[0]?.url ||
-			decrypted.sources?.[0]?.file;
+		const streams: StreamResult[] = [];
 
-		if (!this.isValidStreamUrl(streamUrl)) {
-			logger.debug('No valid stream URL in Hexa response', streamLog);
-			return [];
+		// Check for top-level stream properties first
+		const topLevelUrl = decrypted.stream || decrypted.file || decrypted.url;
+		if (topLevelUrl && this.isValidStreamUrl(topLevelUrl)) {
+			streams.push(
+				this.createStreamResult(topLevelUrl, {
+					quality: 'Auto',
+					title: 'Hexa Stream',
+					language: 'en',
+					referer: '',
+					headers: { Origin: '' }
+				})
+			);
 		}
 
-		return [
-			this.createStreamResult(streamUrl, {
-				quality: 'Auto',
-				title: 'Hexa Stream',
-				language: 'en', // Hexa sources English-language content
-				referer: '' // Hexa CDN rejects requests with referer headers
-			})
-		];
+		// Process all sources from the array
+		if (decrypted.sources && Array.isArray(decrypted.sources)) {
+			for (const source of decrypted.sources) {
+				const sourceUrl = source.url || source.file;
+				if (sourceUrl && this.isValidStreamUrl(sourceUrl)) {
+					const quality = source.server ? source.server : 'Auto';
+					streams.push(
+						this.createStreamResult(sourceUrl, {
+							quality: quality,
+							title: 'Hexa Stream',
+							language: 'en',
+							referer: '',
+							headers: { Origin: '' }
+						})
+					);
+				}
+			}
+		}
+
+		if (streams.length === 0) {
+			logger.debug('No valid stream URL in Hexa response', streamLog);
+		}
+
+		return streams;
 	}
 
 	private generateRandomHexKey(bytes: number): string {
