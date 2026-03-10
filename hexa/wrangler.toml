@@ -4,3 +4,6 @@ compatibility_date = "2024-01-01"
 
 [vars]
 WORKER_ENV = "production"
+# ALLOWED_ORIGINS and API_KEY must be set as secrets:
+# wrangler secret put ALLOWED_ORIGINS
+# wrangler secret put API_KEY

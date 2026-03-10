@@ -19,22 +19,48 @@ const FETCH_HEADERS = {
   "Accept-Language": "en-US,en;q=0.9",
 };
 
+// ─── Security Helpers ─────────────────────────────────────────────────────────
+
+function getCorsHeaders(request, env) {
+  const allowedOrigins = (env.ALLOWED_ORIGINS || "").split(",").map(o => o.trim()).filter(Boolean);
+  const requestOrigin = request.headers.get("Origin") || "";
+  const matchedOrigin = allowedOrigins.find(o => o === requestOrigin);
+  const origin = matchedOrigin || (allowedOrigins[0] || "*");
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+    "Vary": "Origin",
+  };
+}
+
+function checkAuth(request, env) {
+  if (!env.API_KEY) return null; // auth not configured, allow all
+  if (request.method === "OPTIONS") return null; // skip for preflight
+  const key = request.headers.get("X-Api-Key");
+  if (key !== env.API_KEY) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return null;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status = 200, corsHeaders = {}) {
   return new Response(JSON.stringify(data, null, 2), {
     status,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      ...corsHeaders,
     },
   });
 }
 
-function errorResponse(message, status = 400) {
-  return jsonResponse({ error: message }, status);
+function errorResponse(message, status = 400, corsHeaders = {}) {
+  return jsonResponse({ error: message }, status, corsHeaders);
 }
 
 // ─── Data Fetchers ────────────────────────────────────────────────────────────
@@ -101,7 +127,7 @@ function buildTvLinks(config, episodeLink) {
 
 // ─── Route Handlers ───────────────────────────────────────────────────────────
 
-async function handleRoot(request) {
+async function handleRoot(request, corsHeaders) {
   const host = new URL(request.url).origin;
   return jsonResponse({
     service: "StreamFlix Video Links API",
@@ -112,10 +138,10 @@ async function handleRoot(request) {
       movie: `${host}/movie/550`,
       tv: `${host}/tv/1396/1/1`,
     },
-  });
+  }, 200, corsHeaders);
 }
 
-async function handleMovie(tmdbId) {
+async function handleMovie(tmdbId, corsHeaders) {
   const [config, catalog] = await Promise.all([
     fetchConfig(),
     fetchCatalog(),
@@ -123,19 +149,20 @@ async function handleMovie(tmdbId) {
 
   const item = findByTmdb(catalog, tmdbId);
   if (!item) {
-    return errorResponse(`No content found with TMDB ID: ${tmdbId}`, 404);
+    return errorResponse(`No content found with TMDB ID: ${tmdbId}`, 404, corsHeaders);
   }
 
   if (item.isTV) {
     return errorResponse(
       `TMDB ID ${tmdbId} is a TV show, not a movie. Use /tv/${tmdbId}/{season}/{episode}`,
-      400
+      400,
+      corsHeaders
     );
   }
 
   const movieLink = item.movielink || "";
   if (!movieLink) {
-    return errorResponse("No movie link available in catalog data", 404);
+    return errorResponse("No movie link available in catalog data", 404, corsHeaders);
   }
 
   const links = buildMovieLinks(config, movieLink);
@@ -151,10 +178,10 @@ async function handleMovie(tmdbId) {
     poster: item.movieposter ? `${TMDB_IMG}/${item.movieposter}` : null,
     relativePath: movieLink,
     links,
-  });
+  }, 200, corsHeaders);
 }
 
-async function handleTv(tmdbId, season, episode) {
+async function handleTv(tmdbId, season, episode, corsHeaders) {
   const [config, catalog] = await Promise.all([
     fetchConfig(),
     fetchCatalog(),
@@ -162,19 +189,20 @@ async function handleTv(tmdbId, season, episode) {
 
   const item = findByTmdb(catalog, tmdbId);
   if (!item) {
-    return errorResponse(`No content found with TMDB ID: ${tmdbId}`, 404);
+    return errorResponse(`No content found with TMDB ID: ${tmdbId}`, 404, corsHeaders);
   }
 
   if (!item.isTV) {
     return errorResponse(
       `TMDB ID ${tmdbId} is a movie, not a TV show. Use /movie/${tmdbId}`,
-      400
+      400,
+      corsHeaders
     );
   }
 
   const movieKey = item.moviekey || "";
   if (!movieKey) {
-    return errorResponse("No movie key available for this TV show", 404);
+    return errorResponse("No movie key available for this TV show", 404, corsHeaders);
   }
 
   // Fetch episodes for the requested season via Firebase REST API
@@ -182,7 +210,8 @@ async function handleTv(tmdbId, season, episode) {
   if (!episodesRaw) {
     return errorResponse(
       `No episodes found for season ${season} of "${item.moviename}"`,
-      404
+      404,
+      corsHeaders
     );
   }
 
@@ -192,7 +221,8 @@ async function handleTv(tmdbId, season, episode) {
   if (!ep) {
     return errorResponse(
       `Episode ${episode} not found in season ${season} of "${item.moviename}"`,
-      404
+      404,
+      corsHeaders
     );
   }
 
@@ -200,7 +230,8 @@ async function handleTv(tmdbId, season, episode) {
   if (!episodeLink) {
     return errorResponse(
       `No video link available for S${season}E${episode}`,
-      404
+      404,
+      corsHeaders
     );
   }
 
@@ -224,37 +255,41 @@ async function handleTv(tmdbId, season, episode) {
       : null,
     relativePath: episodeLink,
     links,
-  });
+  }, 200, corsHeaders);
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 export default {
-  async fetch(request) {
+  async fetch(request, env, ctx) {
+    // Auth check first (skip for OPTIONS)
+    if (request.method !== "OPTIONS") {
+      const authError = checkAuth(request, env);
+      if (authError) return authError;
+    }
+
+    const corsHeaders = getCorsHeaders(request, env);
     const url = new URL(request.url);
     const path = url.pathname;
 
     // CORS preflight
     if (request.method === "OPTIONS") {
       return new Response(null, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-        },
+        status: 204,
+        headers: corsHeaders,
       });
     }
 
     try {
       // GET /
       if (path === "/" || path === "") {
-        return handleRoot(request);
+        return handleRoot(request, corsHeaders);
       }
 
       // GET /movie/{tmdbId}
       const movieMatch = path.match(/^\/movie\/(\d+)\/?$/);
       if (movieMatch) {
-        return handleMovie(movieMatch[1]);
+        return handleMovie(movieMatch[1], corsHeaders);
       }
 
       // GET /tv/{tmdbId}/{season}/{episode}
@@ -263,13 +298,14 @@ export default {
         return handleTv(
           tvMatch[1],
           parseInt(tvMatch[2], 10),
-          parseInt(tvMatch[3], 10)
+          parseInt(tvMatch[3], 10),
+          corsHeaders
         );
       }
 
-      return errorResponse("Not found. Use /movie/{tmdbId} or /tv/{tmdbId}/{season}/{episode}", 404);
+      return errorResponse("Not found. Use /movie/{tmdbId} or /tv/{tmdbId}/{season}/{episode}", 404, corsHeaders);
     } catch (err) {
-      return errorResponse(`Internal error: ${err.message}`, 500);
+      return errorResponse(`Internal error: ${err.message}`, 500, corsHeaders);
     }
   },
 };

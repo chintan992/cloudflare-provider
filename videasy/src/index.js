@@ -18,23 +18,43 @@ const SERVERS = [
   { id: "visioncine",       name: "Astra",     language: "pt-BR",  movieOnly: false },
 ];
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
-
 const FETCH_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
   "Connection": "keep-alive",
 };
 
-function jsonResponse(data, status = 200) {
+function getCorsHeaders(request, env) {
+  const allowedOrigins = (env.ALLOWED_ORIGINS || "").split(",").map(o => o.trim()).filter(Boolean);
+  const requestOrigin = request.headers.get("Origin") || "";
+  const matchedOrigin = allowedOrigins.find(o => o === requestOrigin);
+  const origin = matchedOrigin || (allowedOrigins[0] || "*");
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Api-Key",
+    "Vary": "Origin",
+  };
+}
+
+function checkAuth(request, env) {
+  if (!env.API_KEY) return null; // auth not configured, allow all
+  if (request.method === "OPTIONS") return null; // skip for preflight
+  const key = request.headers.get("X-Api-Key");
+  if (key !== env.API_KEY) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return null;
+}
+
+function jsonResponse(data, status = 200, corsHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "Content-Type": "application/json",
-      ...CORS_HEADERS,
+      ...corsHeaders,
     },
   });
 }
@@ -155,13 +175,20 @@ async function tryServerSequential(server, params, tmdbId) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env, ctx) {
+    // Auth check first (skip for OPTIONS)
+    if (request.method !== "OPTIONS") {
+      const authError = checkAuth(request, env);
+      if (authError) return authError;
+    }
+
+    const corsHeaders = getCorsHeaders(request, env);
     const url = new URL(request.url);
     const pathname = url.pathname;
 
     // Handle CORS preflight
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
     // Parse route
@@ -193,7 +220,8 @@ export default {
           success: false,
           error: "Invalid route. Use /movie/{tmdb_id} or /tv/{tmdb_id}/{season}/{episode}",
         },
-        404
+        404,
+        corsHeaders
       );
     }
 
@@ -214,7 +242,7 @@ export default {
         streams: [],
         success: false,
         error: "Missing required query parameters: title and year",
-      });
+      }, 200, corsHeaders);
     }
 
     const params = {
@@ -253,7 +281,7 @@ export default {
           streams: [],
           success: false,
           error: "No streams found from any server",
-        });
+        }, 200, corsHeaders);
       }
 
       return jsonResponse({
@@ -261,14 +289,14 @@ export default {
         streams,
         success: true,
         error: null,
-      });
+      }, 200, corsHeaders);
     } catch (err) {
       return jsonResponse({
         ...baseResponse,
         streams: [],
         success: false,
         error: err.message || "Unexpected error",
-      });
+      }, 200, corsHeaders);
     }
   },
 };
